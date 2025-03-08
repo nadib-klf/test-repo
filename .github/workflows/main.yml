@@ -32,7 +32,7 @@ jobs:
         with:
           repository: nadib-klf/database-migration
           path: target-repo
-          token: ${{ secrets.GITHUB_TOKEN }}  # Use the default GitHub token or a personal access token
+          token: ${{ secrets.TARGET_REPO_TOKEN }}  # Use the default GitHub token or a personal access token
 
       # Step 4: Determine the latest version in the target repository
       - name: Find latest version in target repository
