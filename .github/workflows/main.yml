@@ -14,7 +14,7 @@ jobs:
     steps:
       # Step 1: Checkout the current repository
       - name: Checkout current repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Step 2: Identify the latest SQL file in the source repository
       - name: Find latest SQL file in source repository
@@ -25,35 +25,35 @@ jobs:
           
           # Step 1: Find all SQL files in /resources/sql/
           echo "Step 1: Listing all SQL files in /resources/sql/"
-          FILES=$(find resources/sql/ -type f -name '*.sql')
+          FILES=$(git diff-tree --no-commit-id --name-only -r HEAD)
           echo "Files found:"
           echo "$FILES"
           
-          # Step 2: Retrieve modification timestamps for each file
-          echo "Step 2: Retrieving modification timestamps for each file"
-          FILES_WITH_TIMESTAMPS=$(find resources/sql/ -type f -name '*.sql' -exec stat -c '%Y %n' {} +)
-          echo "Files with timestamps:"
-          echo "$FILES_WITH_TIMESTAMPS"
+          # # Step 2: Retrieve modification timestamps for each file
+          # echo "Step 2: Retrieving modification timestamps for each file"
+          # FILES_WITH_TIMESTAMPS=$(find resources/sql/ -type f -name '*.sql' -exec stat -c '%Y %n' {} +)
+          # echo "Files with timestamps:"
+          # echo "$FILES_WITH_TIMESTAMPS"
           
-          # Step 3: Sort files by modification timestamp (newest first)
-          echo "Step 3: Sorting files by modification timestamp (newest first)"
-          SORTED_FILES=$(echo "$FILES_WITH_TIMESTAMPS" | sort -nr)
-          echo "Sorted files:"
-          echo "$SORTED_FILES"
+          # # Step 3: Sort files by modification timestamp (newest first)
+          # echo "Step 3: Sorting files by modification timestamp (newest first)"
+          # SORTED_FILES=$(echo "$FILES_WITH_TIMESTAMPS" | sort -nr)
+          # echo "Sorted files:"
+          # echo "$SORTED_FILES"
           
-          # Step 4: Select the latest file (most recently modified)
-          echo "Step 4: Selecting the latest file (most recently modified)"
-          LATEST_FILE=$(echo "$SORTED_FILES" | head -1 | cut -d' ' -f2-)
-          echo "Latest file found: ${LATEST_FILE}"
+          # # Step 4: Select the latest file (most recently modified)
+          # echo "Step 4: Selecting the latest file (most recently modified)"
+          # LATEST_FILE=$(echo "$SORTED_FILES" | head -1 | cut -d' ' -f2-)
+          # echo "Latest file found: ${LATEST_FILE}"
           
-          # Step 5: Output the latest file
-          if [ -n "$LATEST_FILE" ]; then
-            echo "Step 5: Writing latest file to GITHUB_OUTPUT"
-            echo "latest_file=${LATEST_FILE}" >> $GITHUB_OUTPUT
-          else
-            echo "No files found in /resources/sql/."
-            exit 1
-          fi
+          # # Step 5: Output the latest file
+          # if [ -n "$LATEST_FILE" ]; then
+          #   echo "Step 5: Writing latest file to GITHUB_OUTPUT"
+          #   echo "latest_file=${LATEST_FILE}" >> $GITHUB_OUTPUT
+          # else
+          #   echo "No files found in /resources/sql/."
+          #   exit 1
+          # fi
 
       # # Step 3: Checkout the target repository
       # - name: Checkout target repository
