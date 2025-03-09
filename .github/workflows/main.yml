@@ -20,20 +20,38 @@ jobs:
       - name: Find latest SQL file in source repository
         id: find-latest-file
         run: |
-          echo "Finding the latest SQL file in /resources/sql/"
 
-          # Find the latest file from the last commit
-          LATEST_FILE=$(git log --pretty=format:"%ct %H" --diff-filter=A -- resources/sql/*.sql | sort -nr | head -1 | cut -d' ' -f2 | xargs git show --name-only --pretty=format: | tail -n 1)
-          echo "latest file: $LATEST_FILE"
-          LAST_COMMIT_MESSAGE=$(git log -1 --pretty=%B)
-          echo "Last commit message: $LAST_COMMIT_MESSAGE"
-      #     if [ -n "$LATEST_FILE" ]; then
-      #       echo "Latest file found: ${LATEST_FILE}"
-      #       echo "latest_file=${LATEST_FILE}" >> $GITHUB_OUTPUT
-      #     else
-      #       echo "No files found in /resources/sql/."
-      #       exit 1
-      #     fi
+          # Step 1: Find all SQL files in /resources/sql/
+          echo "Step 1: Listing all SQL files in /resources/sql/"
+          FILES=$(find resources/sql/ -type f -name '*.sql')
+          echo "Files found:"
+          echo "$FILES"
+          
+          # Step 2: Retrieve modification timestamps for each file
+          echo "Step 2: Retrieving modification timestamps for each file"
+          FILES_WITH_TIMESTAMPS=$(find resources/sql/ -type f -name '*.sql' -exec stat -c '%Y %n' {} +)
+          echo "Files with timestamps:"
+          echo "$FILES_WITH_TIMESTAMPS"
+          
+          # Step 3: Sort files by modification timestamp (newest first)
+          echo "Step 3: Sorting files by modification timestamp (newest first)"
+          SORTED_FILES=$(echo "$FILES_WITH_TIMESTAMPS" | sort -nr)
+          echo "Sorted files:"
+          echo "$SORTED_FILES"
+          
+          # Step 4: Select the latest file (most recently modified)
+          echo "Step 4: Selecting the latest file (most recently modified)"
+          LATEST_FILE=$(echo "$SORTED_FILES" | head -1 | cut -d' ' -f2-)
+          echo "Latest file found: ${LATEST_FILE}"
+          
+          # Step 5: Output the latest file
+          if [ -n "$LATEST_FILE" ]; then
+            echo "Step 5: Writing latest file to GITHUB_OUTPUT"
+            echo "latest_file=${LATEST_FILE}" >> $GITHUB_OUTPUT
+          else
+            echo "No files found in /resources/sql/."
+            exit 1
+          fi
 
       # # Step 3: Checkout the target repository
       # - name: Checkout target repository
