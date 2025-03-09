@@ -63,12 +63,22 @@ jobs:
         run: |
           echo "Incrementing version and renaming file"
           NEW_VERSION=$(( ${{ steps.find-latest-version.outputs.latest_version }} + 1 ))
-          for FILE in ${{ steps.find-sql-files.outputs.files }}; do
-            BASENAME=$(basename "$FILE")
+      
+          # Split the FILES variable into individual file paths
+          IFS=$'\n'  # Set the Internal Field Separator to newline
+          FILES=${{ steps.find-sql-files.outputs.files }}
+      
+          # Find the latest file (most recently modified)
+          LATEST_FILE=$(echo "$FILES" | xargs -I {} sh -c 'git log -1 --format="%ct {}" {}' | sort -nr | head -1 | cut -d' ' -f2-)
+      
+          if [ -n "$LATEST_FILE" ]; then
+            BASENAME=$(basename "$LATEST_FILE")
             NEW_NAME="V${NEW_VERSION}__${BASENAME}"
-            echo "Renaming $FILE to $NEW_NAME"
-            cp "$FILE" "target-repo/flyway/sql/$NEW_NAME"
-          done
+            echo "Renaming $LATEST_FILE to $NEW_NAME"
+            cp "$LATEST_FILE" "target-repo/flyway/sql/$NEW_NAME"
+          else
+            echo "No files found to process."
+          fi
 
       # Step 6: Commit and push changes to the target repository
       - name: Commit and push changes to target repository
