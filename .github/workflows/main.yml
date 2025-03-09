@@ -31,8 +31,11 @@ jobs:
             FILES=$(git ls-files -- 'resources/sql/')
           fi
 
+          # Escape newlines and special characters in the FILES variable
+          FILES_ESCAPED=$(echo "$FILES" | jq -sR . | sed 's/^"\(.*\)"$/\1/')
+
           echo "Files changed: ${FILES}"
-          echo "files=${FILES}" >> $GITHUB_OUTPUT  # Use environment file instead of set-output
+          echo "files=${FILES_ESCAPED}" >> $GITHUB_OUTPUT  # Use environment file instead of set-output
 
       # Step 3: Checkout the target repository
       - name: Checkout target repository
@@ -76,6 +79,6 @@ jobs:
           cd target-repo
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add flyway/sql/
-          git commit -m "Sync new SQL file with version increment $to Version $NEW_VERSION"
+          git add resources/sql/
+          git commit -m "Sync new SQL file with version increment $NEW_NAME"
           git push
