@@ -50,7 +50,7 @@ jobs:
         id: find-latest-version
         run: |
           echo "Finding the latest version in the target repository"
-          cd target-repo/resources/sql/
+          cd target-repo/flyway/sql/
           LATEST_VERSION=$(ls V*__*.sql 2>/dev/null | grep -oP '^V\K\d+' | sort -n | tail -1 || echo "0")
           echo "Latest version found: ${LATEST_VERSION}"
           echo "::set-output name=latest_version::${LATEST_VERSION}"
