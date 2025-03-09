@@ -21,6 +21,8 @@ jobs:
         id: find-latest-file
         run: |
 
+          echo "Finding the latest SQL file in /resources/sql/ based on file system timestamp"
+          
           # Step 1: Find all SQL files in /resources/sql/
           echo "Step 1: Listing all SQL files in /resources/sql/"
           FILES=$(find resources/sql/ -type f -name '*.sql')
