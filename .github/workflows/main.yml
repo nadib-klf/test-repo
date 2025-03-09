@@ -65,7 +65,7 @@ jobs:
             BASENAME=$(basename "$FILE")
             NEW_NAME="V${NEW_VERSION}__${BASENAME}"
             echo "Renaming $FILE to $NEW_NAME"
-            cp "$FILE" "target-repo/resources/sql/$NEW_NAME"
+            cp "$FILE" "target-repo/flyway/sql/$NEW_NAME"
           done
 
       # Step 6: Commit and push changes to the target repository
@@ -73,9 +73,10 @@ jobs:
         if: steps.find-sql-files.outputs.files != ''
         run: |
           echo "Committing and pushing changes to target repository"
+          NEW_VERSION=$(( ${{ steps.find-latest-version.outputs.latest_version }} + 1 ))
           cd target-repo
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add resources/sql/
-          git commit -m "Sync new SQL file with version increment"
+          git commit -m "Sync new SQL file with version increment $NEW_NAME"
           git push
