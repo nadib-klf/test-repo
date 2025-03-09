@@ -22,8 +22,8 @@ jobs:
         run: |
           echo "Finding the latest SQL file in /resources/sql/"
 
-          # Find the latest file (most recently modified)
-          LATEST_FILE=$(find resources/sql/ -type f -name '*.sql' -exec stat -c '%Y %n' {} + | sort -nr | head -1 | cut -d' ' -f2-)
+          # Find the latest file from the last commit
+          LATEST_FILE=$(git log -1 --format="" --name-only -- 'resources/sql/' | grep 'resources/sql/' | head -1)
 
           if [ -n "$LATEST_FILE" ]; then
             echo "Latest file found: ${LATEST_FILE}"
