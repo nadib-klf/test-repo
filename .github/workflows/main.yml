@@ -21,9 +21,19 @@ jobs:
         id: find-sql-files
         run: |
           echo "Checking for new or modified SQL files in /resources/sql/"
-          FILES=$(git diff --name-only HEAD^ HEAD -- 'resources/sql/')
+
+          # Check if this is the first commit in the repository
+          if git rev-list --count HEAD > /dev/null 2>&1 && [ $(git rev-list --count HEAD) -gt 1 ]; then
+            # If there are multiple commits, use HEAD^ to compare with the previous commit
+            FILES=$(git diff --name-only HEAD^ HEAD -- 'resources/sql/')
+          else
+            # If this is the first commit, list all files in /resources/sql/
+            FILES=$(git ls-files -- 'resources/sql/')
+          fi
+
           echo "Files changed: ${FILES}"
           echo "::set-output name=files::${FILES}"
+
 
       # Step 3: Checkout the target repository
       - name: Checkout target repository
