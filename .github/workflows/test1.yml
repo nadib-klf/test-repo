@@ -1,14 +1,13 @@
-name: Sync Latest SQL File to Target Repository
+name: Sync SQL File on PR
 
 on:
-  push:
-    branches:
-      - main  # Trigger only on changes to the main branch
+  pull_request:
+    types: [opened, synchronize]
     paths:
-      - 'LS_Admin_API/src/main/resources/sql/**.sql'
+      - 'LS_Admin_API/src/main/resources/sql/*.sql'
 
 jobs:
-  sync-sql-files:
+  validate-and-sync:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,39 +15,47 @@ jobs:
       - name: Checkout current repository
         uses: actions/checkout@v3
         with:
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      # Step 2: Identify the latest SQL file from the last commit
-      - name: Find latest SQL file from last commit
-        id: find-latest-file
+      # Step 2: Verify exactly 1 SQL file was changed
+      - name: Validate SQL file changes
+        id: validate-sql
         run: |
-          echo "Finding the latest SQL file in LS_Admin_API/resources/sql/ from the last commit"
-
-          # Get files modified in the last commit
-          FILES=$(git diff-tree --no-commit-id --name-only -r HEAD -- 'LS_Admin_API/src/main/resources/sql/')
-          echo "Files found: $FILES"
-
-          if [ -z "$FILES" ]; then
-            echo "No files found in /LS_Admin_API/resources/sql/ in the last commit."
+          echo "Checking for SQL file changes in PR..."
+          
+          # Get all changed files in the PR
+          FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- 'LS_Admin_API/src/main/resources/sql/*.sql')
+          echo "Changed SQL files: $FILES"
+          
+          # Count SQL files
+          SQL_COUNT=$(echo "$FILES" | wc -l | tr -d ' ')
+          echo "SQL file count: $SQL_COUNT"
+          
+          if [ "$SQL_COUNT" -eq 0 ]; then
+            echo "::warning::No SQL files changed in this PR"
+            echo "should_skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          elif [ "$SQL_COUNT" -gt 1 ]; then
+            echo "::error::Only 1 SQL file change allowed per PR. Found: $SQL_COUNT"
             exit 1
+          else
+            echo "Found 1 SQL file change"
+            echo "sql_file=${FILES}" >> $GITHUB_OUTPUT
+            echo "should_skip=false" >> $GITHUB_OUTPUT
           fi
 
-          # Select the first file (if multiple files were modified)
-          LATEST_FILE=$(echo "$FILES" | head -1)
-
-          echo "Latest file found: ${LATEST_FILE}"
-          echo "latest_file=${LATEST_FILE}" >> $GITHUB_OUTPUT
-
-      # Step 3: Checkout the target repository
+      # Only continue if exactly 1 SQL file was changed
       - name: Checkout target repository
+        if: steps.validate-sql.outputs.should_skip == 'false'
         uses: actions/checkout@v3
         with:
           repository: klfmedia/flyway-db-tracking
           path: target-repo
-          token: ${{ secrets.TARGET_REPO_TOKEN }}  # Use the token from secrets
+          token: ${{ secrets.TARGET_REPO_TOKEN }}
 
-      # Step 4: Determine the latest version in the target repository
       - name: Find latest version in target repository
+        if: steps.validate-sql.outputs.should_skip == 'false'
         id: find-latest-version
         run: |
           echo "Finding the latest version in the target repository"
@@ -57,25 +64,20 @@ jobs:
           echo "Latest version found: ${LATEST_VERSION}"
           echo "latest_version=${LATEST_VERSION}" >> $GITHUB_OUTPUT
 
-      # Step 5: Increment the version and rename the latest file
       - name: Increment version and rename file
+        if: steps.validate-sql.outputs.should_skip == 'false'
         run: |
           echo "Incrementing version and renaming file"
           NEW_VERSION=$(( ${{ steps.find-latest-version.outputs.latest_version }} + 1 ))
-          LATEST_FILE=${{ steps.find-latest-file.outputs.latest_file }}
+          SQL_FILE=${{ steps.validate-sql.outputs.sql_file }}
 
-          if [ -n "$LATEST_FILE" ]; then
-            BASENAME=$(basename "$LATEST_FILE")
-            NEW_NAME="V${NEW_VERSION}__${BASENAME}"
-            echo "Renaming $LATEST_FILE to $NEW_NAME"
-            cp "$LATEST_FILE" "target-repo/flyway/sql/$NEW_NAME"
-          else
-            echo "No latest file found to process."
-            exit 1
-          fi
+          BASENAME=$(basename "$SQL_FILE")
+          NEW_NAME="V${NEW_VERSION}__${BASENAME}"
+          echo "Renaming $SQL_FILE to $NEW_NAME"
+          cp "$SQL_FILE" "target-repo/flyway/sql/$NEW_NAME"
 
-      # Step 6: Commit and push changes to the target repository
-      - name: Commit and push changes to target repository
+      - name: Commit and push changes
+        if: steps.validate-sql.outputs.should_skip == 'false'
         run: |
           echo "Committing and pushing changes to target repository"
           NEW_VERSION=$(( ${{ steps.find-latest-version.outputs.latest_version }} + 1 ))
